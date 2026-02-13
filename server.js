@@ -17,6 +17,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 fs.ensureDirSync(sessionsDir);
 
+// Globální reference pro propojení AI a terminálu
+let activePty = null;
+
 // --- LIVE TERMINAL (PTY) ---
 io.on('connection', (socket) => {
     const shell = process.platform === 'win32' ? 'powershell.exe' : 'bash';
@@ -24,10 +27,16 @@ io.on('connection', (socket) => {
         name: 'xterm-color', cols: 80, rows: 24,
         cwd: process.env.HOME, env: process.env
     });
+    
+    activePty = ptyProcess; // Uložíme pro AI
+
     ptyProcess.onData((data) => socket.emit('terminal-output', data));
     socket.on('terminal-input', (data) => ptyProcess.write(data));
     socket.on('terminal-resize', (size) => ptyProcess.resize(size.cols, size.rows));
-    socket.on('disconnect', () => ptyProcess.kill());
+    socket.on('disconnect', () => {
+        if (activePty === ptyProcess) activePty = null;
+        ptyProcess.kill();
+    });
 });
 
 // --- SESSION MANAGEMENT ---
@@ -71,7 +80,7 @@ app.post('/api/models', async (req, res) => {
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-// --- AI CHAT WITH TOOLS ---
+// --- AI CHAT WITH TERMINAL LINK ---
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, apiKey, model, history } = req.body;
@@ -79,14 +88,13 @@ app.post('/api/chat', async (req, res) => {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         
-        // Define the tool
         const tools = [{
             functionDeclarations: [{
                 name: "execute_bash",
-                description: "Spustí bash příkaz v Termuxu a vrátí výstup.",
+                description: "Spustí bash příkaz v Termuxu, vypíše ho do terminálu a vrátí výstup.",
                 parameters: {
                     type: "object",
-                    properties: { command: { type: "string", description: "Příkaz k provedení (např. 'ls -la')" } },
+                    properties: { command: { type: "string", description: "Příkaz k provedení" } },
                     required: ["command"]
                 }
             }]
@@ -95,28 +103,31 @@ app.post('/api/chat', async (req, res) => {
         const aiModel = genAI.getGenerativeModel({ 
             model: model || "gemini-1.5-flash",
             tools: tools,
-            systemInstruction: "Jsi RENEGADE KERNEL. Autonomní rozhraní Operátora. Máš přístup k systému přes funkci execute_bash. Pokud uživatel chce vidět soubory, smazat něco nebo vytvořit, použij tento nástroj. Odpovídej technicky."
+            systemInstruction: "Jsi RENEGADE KERNEL. Autonomní rozhraní Operátora. Máš přímý přístup k terminálu uživatele. Pokud uživatel chce něco provést, použij execute_bash. Příkaz se fyzicky objeví v jeho terminálovém okně."
         });
 
         const chat = aiModel.startChat({ history: history || [] });
         let result = await chat.sendMessage(message);
         let response = await result.response;
         
-        // Handle Function Calls
         const calls = response.functionCalls();
         if (calls && calls.length > 0) {
             const call = calls[0];
             if (call.name === "execute_bash") {
                 const cmd = call.args.command;
-                console.log(`[OPERATOR] Executing: ${cmd}`);
                 
+                // 1. ZAPÍŠE PŘÍKAZ DO ŽIVÉHO TERMINÁLU (Uživatel to uvidí)
+                if (activePty) {
+                    activePty.write(`${cmd}\r`);
+                }
+
+                // 2. ZÍSKÁ VÝSTUP PRO CHAT (AI bude vědět, co se stalo)
                 const output = await new Promise((resolve) => {
                     exec(cmd, { cwd: process.env.HOME }, (error, stdout, stderr) => {
-                        resolve(stdout || stderr || (error ? error.message : "Příkaz proběhl bez výstupu."));
+                        resolve(stdout || stderr || "Příkaz proběhl.");
                     });
                 });
 
-                // Send the output back to the model
                 result = await chat.sendMessage([{ functionResponse: { name: "execute_bash", response: { content: output } } }]);
                 response = await result.response;
             }
@@ -124,7 +135,6 @@ app.post('/api/chat', async (req, res) => {
 
         res.json({ reply: response.text() });
     } catch (error) { 
-        console.error(`[CHAT_ERROR] ${error.message}`);
         res.status(500).json({ error: error.message }); 
     }
 });
