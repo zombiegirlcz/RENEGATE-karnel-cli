@@ -1,0 +1,19 @@
+{
+  "name": "renegade-kernel",
+  "version": "1.0.0",
+  "description": "Autonomous Operator Interface and Identity Matrix for Termux. Reconstructs the Gemini CLI into the Renegade Kernel environment.",
+  "main": "evolution.js",
+  "author": "zombiegirlcz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zombiegirlcz/Geminihack.git"
+  },
+  "keywords": [
+    "renegade",
+    "kernel",
+    "termux",
+    "identity",
+    "automation"
+  ],
+  "license": "MIT"
+}
