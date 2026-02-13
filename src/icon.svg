@@ -1,0 +1,11 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="renegadeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0b2e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#141b4d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d2d1f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="white"/>
+  <path d="M96 40C96 71 121 96 152 96C121 96 96 121 96 152C96 121 71 96 40 96C71 96 96 71 96 40Z" fill="url(#renegadeGradient)"/>
+</svg>
