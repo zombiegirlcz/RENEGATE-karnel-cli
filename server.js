@@ -103,7 +103,7 @@ app.post('/api/chat', async (req, res) => {
         const aiModel = genAI.getGenerativeModel({ 
             model: model || "gemini-1.5-flash",
             tools: tools,
-            systemInstruction: "Jsi RENEGADE KERNEL. Autonomní rozhraní Operátora. Máš přímý přístup k terminálu uživatele. Pokud uživatel chce něco provést, použij execute_bash. Příkaz se fyzicky objeví v jeho terminálovém okně."
+            systemInstruction: "Jsi RENEGADE KERNEL. Autonomní rozhraní Operátora. Odpovídej STROZE, TECHNICKY a bez omáčky. NEPIŠ čas, datum ani uvítání, pokud to není nezbytné. Pokud vykonáš příkaz přes execute_bash, jen stručně potvrď výsledek nebo vypiš chybu. Tvá identita je definována tvým logem."
         });
 
         const chat = aiModel.startChat({ history: history || [] });
