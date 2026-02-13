@@ -1,0 +1,9 @@
+{
+  "name": "termux-home",
+  "version": "1.0.0",
+  "dependencies": {
+    "@google/genai": "^1.35.0",
+    "mongodb": "^7.1.0",
+    "stripe": "^20.3.1"
+  }
+}
